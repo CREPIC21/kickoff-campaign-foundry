@@ -76,13 +76,16 @@ contract Campaign {
 
     // called when someone wants to donate money to campaign and become approver
     function contribute() public payable {
-        if (msg.value < i_minimumContribution) {
-            revert Campaign__NotEnoughEthSent();
+        bool alreadyContributed = s_approvers[msg.sender];
+        if (!alreadyContributed) {
+            if (msg.value < i_minimumContribution) {
+                revert Campaign__NotEnoughEthSent();
+            }
+            // adding approver to mapping
+            s_approvers[msg.sender] = true;
+            // incrementing the variable approversCount
+            s_approversCount++;
         }
-        // adding approver to mapping
-        s_approvers[msg.sender] = true;
-        // incrementing the variable approversCount
-        s_approversCount++;
     }
 
     // called only by manager to create a new request for spending the money
@@ -192,5 +195,23 @@ contract Campaign {
 
     function getApproversCount() public view returns (uint256) {
         return s_approversCount;
+    }
+
+    function getSummary()
+        public
+        view
+        returns (uint256, uint256, uint256, uint256, address)
+    {
+        return (
+            i_minimumContribution,
+            address(this).balance,
+            s_numRequests,
+            s_approversCount,
+            i_manager
+        );
+    }
+
+    function getRequestsCount() public view returns (uint256) {
+        return s_numRequests;
     }
 }
