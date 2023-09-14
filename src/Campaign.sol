@@ -38,6 +38,7 @@ contract Campaign {
     error Campaign__RequestWasAlreadyFinalized();
     error Campaign__RequestCanNotBeFinalizedAsNotEnoughApprovers();
     error Campaign__ManagerDidNotCallThisFunction();
+    error Campaign__ManagerCanNotApproveRequest();
 
     /**Type declarations*/
     // Request that manager can make to ask approvers to spend certain amount of money for business purposes
@@ -111,6 +112,9 @@ contract Campaign {
     function approveRequest(uint256 requestIndex) public {
         // creating a storage variable for request that caller wants to approve
         Request storage request = s_requests[requestIndex];
+        if (msg.sender == i_manager) {
+            revert Campaign__ManagerCanNotApproveRequest();
+        }
         // checking if person that wants to approve request is also contributor(donated money to the campaign)
         if (!s_approvers[msg.sender]) {
             revert Campaign__ApproverIsNotContributor();
