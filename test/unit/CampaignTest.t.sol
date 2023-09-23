@@ -149,6 +149,23 @@ contract CampaignTest is Test {
         _;
     }
 
+    function testToCheckIfRequestWasAlreadyFinalizedWhenContributorWantsToApproveIt()
+        public
+    {
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        campaign.createRequest("Delivery cost", 1 ether, RECIPIENT);
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.approveRequest(0);
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        campaign.finalizeRequest(0);
+
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        vm.expectRevert(Campaign.Campaign__RequestWasAlreadyFinalized.selector); // the next line should revert, it should fail as CONTRIBUTOR will try to approve request that was already finalized
+        campaign.approveRequest(0);
+    }
+
     function testToCheckIfPersonApprovingRequestIsNotManager()
         public
         createRequest
@@ -317,6 +334,14 @@ contract CampaignTest is Test {
         campaign.finalizeRequest(1);
         vm.stopPrank();
     }
+
+    // function testCreateRequestWithEmptyDescription() public {
+    //     // Attempt to create a request with an empty description
+    //     vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR donating 4 ETH
+    //     campaign.contribute{value: 4 ether}();
+    //     vm.prank(OWNER); // The next TX will be sent by OWNER
+    //     campaign.createRequest("", 1 ether, RECIPIENT); // Empty description
+    // }
 }
 
 // /*

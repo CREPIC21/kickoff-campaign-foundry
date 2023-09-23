@@ -41,6 +41,7 @@ contract Campaign {
     error Campaign__ManagerCanNotApproveRequest();
     error Campaign__RequestCanNotBeFinalizedAsContractDoesNotHaveEnoughBalance();
     error Campaign__RequestCanNotBeCreatedAsContractDoesNotHaveEnoughBalanceForRequestValue();
+    error Campaign__FunctionCalledWithInvalidParameters(); // custom error for tests regarding function calls
 
     /**Type declarations*/
     // Request that manager can make to ask approvers to spend certain amount of money for business purposes
@@ -118,6 +119,10 @@ contract Campaign {
     function approveRequest(uint256 requestIndex) public {
         // creating a storage variable for request that caller wants to approve
         Request storage request = s_requests[requestIndex];
+        // check if request is not already marked as complete
+        if (request.complete) {
+            revert Campaign__RequestWasAlreadyFinalized();
+        }
         if (msg.sender == i_manager) {
             revert Campaign__ManagerCanNotApproveRequest();
         }
