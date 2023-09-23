@@ -39,6 +39,8 @@ contract Campaign {
     error Campaign__RequestCanNotBeFinalizedAsNotEnoughApprovers();
     error Campaign__ManagerDidNotCallThisFunction();
     error Campaign__ManagerCanNotApproveRequest();
+    error Campaign__RequestCanNotBeFinalizedAsContractDoesNotHaveEnoughBalance();
+    error Campaign__RequestCanNotBeCreatedAsContractDoesNotHaveEnoughBalanceForRequestValue();
 
     /**Type declarations*/
     // Request that manager can make to ask approvers to spend certain amount of money for business purposes
@@ -95,6 +97,10 @@ contract Campaign {
         uint256 _requestValue,
         address _requestRecipient
     ) public onlyManager {
+        // checking if contract has enough funds regarding to requested value
+        if (address(this).balance < _requestValue) {
+            revert Campaign__RequestCanNotBeCreatedAsContractDoesNotHaveEnoughBalanceForRequestValue();
+        }
         Request storage newRequest = s_requests[s_numRequests++];
         newRequest.requestDescription = _requestDescription;
         newRequest.requestValue = _requestValue;
@@ -141,6 +147,11 @@ contract Campaign {
         // at least 50% of all the people who have contributed to this campaign have to vote yes in order for this thing to be finalized
         if (!(request.approvalCount > (s_approversCount / 2))) {
             revert Campaign__RequestCanNotBeFinalizedAsNotEnoughApprovers();
+        }
+
+        // checking if contract has enough funds that needs to be transfered to the recipient
+        if (address(this).balance < request.requestValue) {
+            revert Campaign__RequestCanNotBeFinalizedAsContractDoesNotHaveEnoughBalance();
         }
 
         // takeing the money that is specified inside the request and attempt to send it to the recipient

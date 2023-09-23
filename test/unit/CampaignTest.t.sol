@@ -100,6 +100,19 @@ contract CampaignTest is Test {
         campaign.createRequest("Delivery cost", 1 ether, RECIPIENT);
     }
 
+    function testRevertWhenCreateingRequestAndContractDoesNothaveEnoughBalanceForTheRequestedAmount()
+        public
+    {
+        // Arrange
+        vm.prank(OWNER); // The next TX will be send by CONTRIBUTOR
+        vm.expectRevert(
+            Campaign
+                .Campaign__RequestCanNotBeCreatedAsContractDoesNotHaveEnoughBalanceForRequestValue
+                .selector
+        ); // the next line should revert, it should fail as contract has 1 ETH of balance and request is for 3 ETH
+        campaign.createRequest("Delivery cost", 3 ether, RECIPIENT);
+    }
+
     function testOnceManagerCreatesRequestNewRequestIsAddedToRequestStruct()
         public
     {
@@ -281,6 +294,25 @@ contract CampaignTest is Test {
             recipientEndingBalance,
             recipientStartingBalance + AMOUNT_TO_SEND
         );
+    }
+
+    function testCreateRequestContributeApproveRequestFinalizeRequestRevertSendMoneyAsContractDoesNotHaveEnoughBalance()
+        public
+    {
+        uint256 AMOUNT_TO_SEND = 5 ether;
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        campaign.createRequest("Delivery cost", AMOUNT_TO_SEND, RECIPIENT);
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.approveRequest(0);
+        vm.prank(OWNER); // The next TX will be send by OWNER, expecting revert as contract doesn't have enough ETH to send to recipient
+        vm.expectRevert(
+            Campaign
+                .Campaign__RequestCanNotBeFinalizedAsContractDoesNotHaveEnoughBalance
+                .selector
+        );
+        campaign.finalizeRequest(0);
     }
 }
 
