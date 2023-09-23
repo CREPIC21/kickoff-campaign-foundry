@@ -117,6 +117,8 @@ contract CampaignTest is Test {
         public
     {
         // Arange
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
         vm.prank(OWNER); // The next TX will be send by OWNER
         // Act
         campaign.createRequest("Delivery cost", 1 ether, RECIPIENT);
@@ -140,6 +142,8 @@ contract CampaignTest is Test {
     }
 
     modifier createRequest() {
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
         vm.prank(OWNER); // The next TX will be send by OWNER
         campaign.createRequest("Delivery cost", 1 ether, RECIPIENT);
         _;
@@ -149,10 +153,6 @@ contract CampaignTest is Test {
         public
         createRequest
     {
-        // Arrange
-        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
-        // Act
-        campaign.contribute{value: 2 ether}();
         vm.prank(OWNER); // The next TX will be send by OWNER
         vm.expectRevert(
             Campaign.Campaign__ManagerCanNotApproveRequest.selector
@@ -164,11 +164,7 @@ contract CampaignTest is Test {
         public
         createRequest
     {
-        // Arrange
-        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
-        // Act
-        campaign.contribute{value: 2 ether}();
-        vm.prank(CONTRIBUTOR_TWO); // The next TX will be send by OWNER
+        vm.prank(CONTRIBUTOR_TWO); // The next TX will be send by CONTRIBUTOR_TWO
         vm.expectRevert(Campaign.Campaign__ApproverIsNotContributor.selector); // the next line should revert, it should fail as OWNER will try to approve request and not the contributor
         campaign.approveRequest(0);
     }
@@ -179,7 +175,6 @@ contract CampaignTest is Test {
     {
         // Arrange
         vm.startPrank(CONTRIBUTOR); // The next transactions will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
         campaign.approveRequest(0);
         vm.expectRevert(
             Campaign.Campaign__ApproverAlreadyVotedForThisRequest.selector
@@ -194,7 +189,6 @@ contract CampaignTest is Test {
     {
         // Arrange
         vm.startPrank(CONTRIBUTOR); // The next transactions will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
         campaign.approveRequest(0);
         vm.stopPrank();
         bool approved = campaign.getApprovalStatusOfApprover(0, CONTRIBUTOR);
@@ -207,7 +201,6 @@ contract CampaignTest is Test {
     {
         // Arrange
         vm.startPrank(CONTRIBUTOR); // The next transactions will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
         campaign.approveRequest(0);
         vm.stopPrank();
         (, , , , uint256 approvalCount) = campaign.getRequest(0);
@@ -217,7 +210,6 @@ contract CampaignTest is Test {
     function testOnlyManagerCanCallFinalizeRequest() public createRequest {
         // Arange
         vm.startPrank(CONTRIBUTOR); // The next transactions will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
         campaign.approveRequest(0);
         vm.expectRevert(
             Campaign.Campaign__ManagerDidNotCallThisFunction.selector
@@ -231,7 +223,6 @@ contract CampaignTest is Test {
         createRequest
     {
         vm.startPrank(CONTRIBUTOR); // The next transactions will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
         campaign.approveRequest(0);
         vm.stopPrank();
         vm.startPrank(OWNER); // The next transactions will be send by OWNER
@@ -245,8 +236,6 @@ contract CampaignTest is Test {
         public
         createRequest
     {
-        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
         vm.prank(CONTRIBUTOR_TWO); // The next TX will be send by CONTRIBUTOR_TWO
         campaign.contribute{value: 2 ether}();
         vm.prank(CONTRIBUTOR_THREE); // The next TX will be send by CONTRIBUTOR_THREE
@@ -267,7 +256,6 @@ contract CampaignTest is Test {
         createRequest
     {
         vm.startPrank(CONTRIBUTOR); // The next transactions will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
         campaign.approveRequest(0);
         vm.stopPrank();
         vm.prank(OWNER); // The next TX will be send by OWNER
@@ -281,10 +269,10 @@ contract CampaignTest is Test {
     {
         uint256 recipientStartingBalance = RECIPIENT.balance;
         uint256 AMOUNT_TO_SEND = 1 ether;
-        vm.prank(OWNER); // The next TX will be send by OWNER
-        campaign.createRequest("Delivery cost", AMOUNT_TO_SEND, RECIPIENT);
         vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
         campaign.contribute{value: 2 ether}();
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        campaign.createRequest("Delivery cost", AMOUNT_TO_SEND, RECIPIENT);
         vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
         campaign.approveRequest(0);
         vm.prank(OWNER); // The next TX will be send by OWNER
@@ -299,20 +287,35 @@ contract CampaignTest is Test {
     function testCreateRequestContributeApproveRequestFinalizeRequestRevertSendMoneyAsContractDoesNotHaveEnoughBalance()
         public
     {
-        uint256 AMOUNT_TO_SEND = 5 ether;
-        vm.prank(OWNER); // The next TX will be send by OWNER
-        campaign.createRequest("Delivery cost", AMOUNT_TO_SEND, RECIPIENT);
-        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
-        campaign.contribute{value: 2 ether}();
-        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        uint256 AMOUNT_TO_SEND_DELIVERY_ONE = 3 ether;
+        uint256 AMOUNT_TO_SEND_DELIVERY_TWO = 2 ether;
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR donating 4 ETH
+        campaign.contribute{value: 4 ether}();
+
+        vm.startPrank(OWNER); // The next TX will be send by OWNER, at this moment contract has 4 ETH donated by CONTRIBUTOR above
+        campaign.createRequest(
+            "Delivery One cost",
+            AMOUNT_TO_SEND_DELIVERY_ONE,
+            RECIPIENT
+        );
+        campaign.createRequest(
+            "Delivery Two cost",
+            AMOUNT_TO_SEND_DELIVERY_TWO,
+            RECIPIENT
+        );
+        vm.stopPrank();
+        vm.startPrank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR, he will approve both requests
         campaign.approveRequest(0);
-        vm.prank(OWNER); // The next TX will be send by OWNER, expecting revert as contract doesn't have enough ETH to send to recipient
+        campaign.approveRequest(1);
+        vm.startPrank(OWNER); // The next TX will be send by OWNER, finalizing first request for 3 ETH and then finalizing second request for 2 ETH which should fail as contract will have 1 ETH left -> 4 - 3 = 1 ETH
+        campaign.finalizeRequest(0);
         vm.expectRevert(
             Campaign
                 .Campaign__RequestCanNotBeFinalizedAsContractDoesNotHaveEnoughBalance
                 .selector
         );
-        campaign.finalizeRequest(0);
+        campaign.finalizeRequest(1);
+        vm.stopPrank();
     }
 }
 
