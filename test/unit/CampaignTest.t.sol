@@ -70,6 +70,27 @@ contract CampaignTest is Test {
         assertEq(approversCount, 1);
     }
 
+    function testWhenContributorSendsMinimumContributionAgainApproversCountDoesNotIncrease()
+        public
+    {
+        // Arrange
+        vm.startPrank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        // Act
+        campaign.contribute{value: 2 ether}();
+        uint256 approversCountAfterFirstContribution = campaign
+            .getApproversCount();
+
+        campaign.contribute{value: 2 ether}();
+        uint256 approversCountAfterSecondContribution = campaign
+            .getApproversCount();
+        vm.stopPrank();
+        // Assert
+        assertEq(
+            approversCountAfterFirstContribution,
+            approversCountAfterSecondContribution
+        );
+    }
+
     function testOnlyManagerCanCallCreateRequest() public {
         // Arrange
         vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
@@ -111,7 +132,7 @@ contract CampaignTest is Test {
         _;
     }
 
-    function testToCheckIfPersonApprovingRequestIsOnTheListOfContributors()
+    function testToCheckIfPersonApprovingRequestIsNotManager()
         public
         createRequest
     {
@@ -120,6 +141,21 @@ contract CampaignTest is Test {
         // Act
         campaign.contribute{value: 2 ether}();
         vm.prank(OWNER); // The next TX will be send by OWNER
+        vm.expectRevert(
+            Campaign.Campaign__ManagerCanNotApproveRequest.selector
+        ); // the next line should revert, it should fail as OWNER will try to approve request and not the contributor
+        campaign.approveRequest(0);
+    }
+
+    function testToCheckIfPersonApprovingRequestIsOnTheListOfContributors()
+        public
+        createRequest
+    {
+        // Arrange
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        // Act
+        campaign.contribute{value: 2 ether}();
+        vm.prank(CONTRIBUTOR_TWO); // The next TX will be send by OWNER
         vm.expectRevert(Campaign.Campaign__ApproverIsNotContributor.selector); // the next line should revert, it should fail as OWNER will try to approve request and not the contributor
         campaign.approveRequest(0);
     }
