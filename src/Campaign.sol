@@ -62,6 +62,16 @@ contract Campaign {
     mapping(address => bool) private s_approvers; // mapping of addresses for every person that donated money
     uint256 private s_approversCount; // every single time someone donates to our campaign, we're going to increment the value of approver count
 
+    /**Events */
+    event Contribution(address indexed contributor, uint256 amount);
+    event RequestCreated(uint256 indexed requestId);
+    event RequestApproved(uint256 indexed requestId, address approver);
+    event RequestFinalized(
+        uint256 indexed requestId,
+        address indexed recipient,
+        uint256 value
+    );
+
     /**Modifiers*/
     modifier onlyManager() {
         if (msg.sender != i_manager) {
@@ -90,6 +100,8 @@ contract Campaign {
             // incrementing the variable approversCount
             s_approversCount++;
         }
+        // Emit the Contribution event
+        emit Contribution(msg.sender, msg.value);
     }
 
     // called only by manager to create a new request for spending the money
@@ -108,6 +120,9 @@ contract Campaign {
         newRequest.requestRecipient = _requestRecipient;
         newRequest.complete = false;
         newRequest.approvalCount = 0;
+
+        // Emit the RequestCreated event
+        emit RequestCreated(s_numRequests - 1);
     }
 
     // called by each approver/contributor to approve spending request
@@ -138,6 +153,9 @@ contract Campaign {
         // if checks above pass we will add the person to approvals mappings and increase approvalCount for this request
         request.approvals[msg.sender] = true;
         request.approvalCount++;
+
+        // Emit the RequestApproved event
+        emit RequestApproved(requestIndex, msg.sender);
     }
 
     // function which after a request has gotten enough approvals, the manager can call this to get money and send it to the vendor
@@ -169,6 +187,13 @@ contract Campaign {
 
         // mark the request as finalized
         request.complete = true;
+
+        // Emit the RequestFinalized event
+        emit RequestFinalized(
+            requestIndex,
+            request.requestRecipient,
+            request.requestValue
+        );
     }
 
     /**Getter functions*/

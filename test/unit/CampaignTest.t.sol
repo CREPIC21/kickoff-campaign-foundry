@@ -8,6 +8,15 @@ import {DeployCampaign} from "../../script/DeployCampaign.s.sol";
 // https://book.getfoundry.sh/forge/cheatcodes -> Foundry cheatcodes
 
 contract CampaignTest is Test {
+    /**Events */
+    event Contribution(address indexed contributor, uint256 amount);
+    event RequestCreated(uint256 indexed requestId);
+    event RequestApproved(uint256 indexed requestId, address approver);
+    event RequestFinalized(
+        uint256 indexed requestId,
+        address indexed recipient,
+        uint256 value
+    );
     Campaign campaign;
 
     //https://book.getfoundry.sh/reference/forge-std/make-addr?highlight=makeAddr#makeaddr
@@ -42,6 +51,63 @@ contract CampaignTest is Test {
         // Act / Assert
         vm.expectRevert(Campaign.Campaign__NotEnoughEthSent.selector); // the next line should revert, it should fail
         campaign.contribute{value: 0.9 ether}(); // sending 0.9 ether value when we should send 1 ether
+    }
+
+    function testEmitsEventOnContribute() public {
+        uint256 contributeValue = 1 ether;
+        // Arrange
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        vm.expectEmit(true, false, false, true, address(campaign));
+        emit Contribution(CONTRIBUTOR, contributeValue);
+        campaign.contribute{value: contributeValue}();
+    }
+
+    function testEmitsEventWhenRequestIsCreated() public {
+        uint256 requestId = 0;
+        string memory requestDescription = "Delivery cost";
+        uint256 requestValue = 1 ether;
+        address requestRecipient = RECIPIENT;
+
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
+
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        vm.expectEmit(true, false, false, false, address(campaign));
+        emit RequestCreated(requestId);
+        campaign.createRequest(
+            requestDescription,
+            requestValue,
+            requestRecipient
+        );
+    }
+
+    function testEmitsEventWhenRequestIsAproved() public {
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
+
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        campaign.createRequest("Delivery cost", 1 ether, RECIPIENT);
+
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        vm.expectEmit(true, false, false, true, address(campaign));
+        emit RequestApproved(0, CONTRIBUTOR);
+        campaign.approveRequest(0);
+    }
+
+    function testEmitsEventWhenRequestIsFinalized() public {
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
+
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        campaign.createRequest("Delivery cost", 1 ether, RECIPIENT);
+
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.approveRequest(0);
+
+        vm.prank(OWNER); // The next TX will be send by OWNER
+        vm.expectEmit(true, true, false, true, address(campaign));
+        emit RequestFinalized(0, RECIPIENT, 1 ether);
+        campaign.finalizeRequest(0);
     }
 
     function testWhenContributorSendsMinimumContributionMappingForSenderIsSetToTrue()
@@ -333,6 +399,31 @@ contract CampaignTest is Test {
         );
         campaign.finalizeRequest(1);
         vm.stopPrank();
+    }
+
+    function testGetContractAddressFunction() public {
+        address currentCampaignAddress = campaign.getContractAddress();
+        address expectedCampaignAdddress = address(campaign);
+        console.log(currentCampaignAddress);
+        console.log(expectedCampaignAdddress);
+        assertEq(currentCampaignAddress, expectedCampaignAdddress);
+    }
+
+    function testGetManagerFunction() public {
+        address currentCampaignManager = campaign.getManager();
+        address expectedCampaignManager = OWNER;
+        assertEq(currentCampaignManager, expectedCampaignManager);
+    }
+
+    function testGetMinimumContributionFunction() public {
+        uint256 currentMinimumContribution = campaign.getMinimumContribution();
+        uint256 expectedMinimumContribution = 1 ether;
+        assertEq(currentMinimumContribution, expectedMinimumContribution);
+    }
+
+    function testGetRequestsCountFunction() public createRequest {
+        uint256 currentRequestCount = campaign.getRequestsCount();
+        assertEq(1, currentRequestCount);
     }
 
     // function testCreateRequestWithEmptyDescription() public {
