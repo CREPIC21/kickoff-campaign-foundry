@@ -41,6 +41,7 @@ contract Campaign {
     error Campaign__ManagerCanNotApproveRequest();
     error Campaign__RequestCanNotBeFinalizedAsContractDoesNotHaveEnoughBalance();
     error Campaign__RequestCanNotBeCreatedAsContractDoesNotHaveEnoughBalanceForRequestValue();
+    error Campaign__ManagerCanNotBeRequestRecipient();
     error Campaign__FunctionCalledWithInvalidParameters(); // custom error for tests regarding function calls
 
     /**Type declarations*/
@@ -110,6 +111,13 @@ contract Campaign {
         uint256 _requestValue,
         address _requestRecipient
     ) public onlyManager {
+        if (_requestRecipient == i_manager) {
+            revert Campaign__ManagerCanNotBeRequestRecipient();
+        }
+        // Ensure that the request description is not empty
+        if (!(bytes(_requestDescription).length > 0)) {
+            revert Campaign__FunctionCalledWithInvalidParameters();
+        }
         // checking if contract has enough funds regarding to requested value
         if (address(this).balance < _requestValue) {
             revert Campaign__RequestCanNotBeCreatedAsContractDoesNotHaveEnoughBalanceForRequestValue();

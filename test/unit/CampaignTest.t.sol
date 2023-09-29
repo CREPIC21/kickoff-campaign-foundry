@@ -426,13 +426,27 @@ contract CampaignTest is Test {
         assertEq(1, currentRequestCount);
     }
 
-    // function testCreateRequestWithEmptyDescription() public {
-    //     // Attempt to create a request with an empty description
-    //     vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR donating 4 ETH
-    //     campaign.contribute{value: 4 ether}();
-    //     vm.prank(OWNER); // The next TX will be sent by OWNER
-    //     campaign.createRequest("", 1 ether, RECIPIENT); // Empty description
-    // }
+    function testCreateRequestWithEmptyDescription() public {
+        // Attempt to create a request with an empty description
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR donating 4 ETH
+        campaign.contribute{value: 4 ether}();
+        vm.prank(OWNER); // The next TX will be sent by OWNER
+        vm.expectRevert(
+            Campaign.Campaign__FunctionCalledWithInvalidParameters.selector
+        );
+        campaign.createRequest("", 1 ether, RECIPIENT); // Empty description
+    }
+
+    function testCreateRequestRequestRecipientCanNotBeManager() public {
+        // Attempt to create a request with an empty description
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR donating 4 ETH
+        campaign.contribute{value: 4 ether}();
+        vm.prank(OWNER); // The next TX will be sent by OWNER
+        vm.expectRevert(
+            Campaign.Campaign__ManagerCanNotBeRequestRecipient.selector
+        );
+        campaign.createRequest("", 1 ether, OWNER); // Empty description
+    }
 }
 
 // /*
