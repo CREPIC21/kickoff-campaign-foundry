@@ -447,6 +447,28 @@ contract CampaignTest is Test {
         );
         campaign.createRequest("", 1 ether, OWNER); // Empty description
     }
+
+    function testGetSummaryFunction() public {
+        (
+            uint256 minimumContribution,
+            uint256 campaignBalance,
+            uint256 numberOfRequests,
+            uint256 approversCount,
+            address manager
+        ) = campaign.getSummary();
+
+        uint256 currentMinimumContribution = campaign.getMinimumContribution();
+        uint256 currentCampaignBalance = address(campaign).balance;
+        uint256 currentNumberOfRequests = campaign.getRequestsCount();
+        uint256 currentApproversCount = campaign.getApproversCount();
+        address currentManager = OWNER;
+
+        assertEq(minimumContribution, currentMinimumContribution);
+        assertEq(campaignBalance, currentCampaignBalance);
+        assertEq(numberOfRequests, currentNumberOfRequests);
+        assertEq(approversCount, currentApproversCount);
+        assertEq(manager, currentManager);
+    }
 }
 
 // /*
