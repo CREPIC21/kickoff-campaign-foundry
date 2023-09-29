@@ -4,8 +4,6 @@ pragma solidity ^0.8.19;
 import {Script} from "forge-std/Script.sol";
 import {Campaign} from "../src/Campaign.sol";
 
-// import {HelperConfig} from "./HelperConfig.s.sol";
-
 contract DeployCampaign is Script {
     function run() external returns (Campaign) {
         // everything before startBroadcast() is not a "real" transaction
