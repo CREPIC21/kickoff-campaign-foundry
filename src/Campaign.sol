@@ -91,8 +91,10 @@ contract Campaign {
 
     // called when someone wants to donate money to campaign and become approver
     function contribute() public payable {
+        // checking if contributer already contributed, if yes approversCount will not encrease(would not make sense)
         bool alreadyContributed = s_approvers[msg.sender];
-        if (!alreadyContributed) {
+        // additional check added to check if manager is contributing, manager can contribute but he will not be added to s_approvers and approversCount will not encrease
+        if (!alreadyContributed && msg.sender != i_manager) {
             if (msg.value < i_minimumContribution) {
                 revert Campaign__NotEnoughEthSent();
             }

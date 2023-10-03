@@ -53,6 +53,26 @@ contract CampaignTest is Test {
         campaign.contribute{value: 0.9 ether}(); // sending 0.9 ether value when we should send 1 ether
     }
 
+    function testToCheckWhenManagerContributesThatHeIsNotAddedToApproversArrayAndApproversCountDoesNotIncrease()
+        public
+    {
+        vm.prank(CONTRIBUTOR); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
+
+        uint256 initialApproversCount = campaign.getApproversCount();
+
+        vm.prank(OWNER); // The next TX will be send by CONTRIBUTOR
+        campaign.contribute{value: 2 ether}();
+
+        uint256 finalApproversCount = campaign.getApproversCount();
+
+        bool wasManagerAddedToContributeArray = campaign
+            .checkIfContributorDonatedMoney(OWNER);
+
+        assertEq(initialApproversCount, finalApproversCount);
+        assertEq(wasManagerAddedToContributeArray, false);
+    }
+
     function testEmitsEventOnContribute() public {
         uint256 contributeValue = 1 ether;
         // Arrange
